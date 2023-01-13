@@ -1,3 +1,10 @@
+# Fork changes
+
+I have decided to start this fork mainly because of two reasons:
+- there are situations where the same route needs to handle the request wih and without the jwt token.
+- refresher solution is overcomplicated, it is simpler to decode the token and let the guard or handle decide.
+
+
 # actix-jwt-auth-middleware
 
 This crate builds upon the [`jwt-compact`](https://github.com/slowli/jwt-compact) crate
