@@ -3,35 +3,31 @@ use crate::Authority;
 use actix_web::{
     body::MessageBody,
     dev::{forward_ready, Service, ServiceRequest, ServiceResponse},
-    Error, FromRequest, Handler,
+    Error,
 };
 use futures_util::future::{FutureExt as _, LocalBoxFuture};
 use serde::{de::DeserializeOwned, Serialize};
 use std::{marker::PhantomData, rc::Rc, sync::Arc};
 
 #[doc(hidden)]
-pub struct AuthenticationMiddleware<S, Claims, Algorithm, RefreshAuthorizer, RefreshAuthorizerArgs>
+pub struct AuthenticationMiddleware<S, Claims, Algorithm>
 where
     Algorithm: jwt_compact::Algorithm,
     Algorithm::SigningKey: Clone,
     Algorithm::VerifyingKey: Clone,
 {
     pub service: Rc<S>,
-    pub inner: Arc<Authority<Claims, Algorithm, RefreshAuthorizer, RefreshAuthorizerArgs>>,
+    pub inner: Arc<Authority<Claims, Algorithm>>,
     _claims: PhantomData<Claims>,
 }
 
-impl<S, Claims, Algorithm, RefreshAuthorizer, RefreshAuthorizerArgs>
-    AuthenticationMiddleware<S, Claims, Algorithm, RefreshAuthorizer, RefreshAuthorizerArgs>
+impl<S, Claims, Algorithm> AuthenticationMiddleware<S, Claims, Algorithm>
 where
     Algorithm: jwt_compact::Algorithm,
     Algorithm::SigningKey: Clone,
     Algorithm::VerifyingKey: Clone,
 {
-    pub fn new(
-        service: Rc<S>,
-        inner: Arc<Authority<Claims, Algorithm, RefreshAuthorizer, RefreshAuthorizerArgs>>,
-    ) -> Self {
+    pub fn new(service: Rc<S>, inner: Arc<Authority<Claims, Algorithm>>) -> Self {
         Self {
             service,
             inner,
@@ -40,8 +36,8 @@ where
     }
 }
 
-impl<S, Body, Claims, Algorithm, RefreshAuthorizer, RefreshAuthorizerArgs> Service<ServiceRequest>
-    for AuthenticationMiddleware<S, Claims, Algorithm, RefreshAuthorizer, RefreshAuthorizerArgs>
+impl<S, Body, Claims, Algorithm> Service<ServiceRequest>
+    for AuthenticationMiddleware<S, Claims, Algorithm>
 where
     S: Service<ServiceRequest, Response = ServiceResponse<Body>, Error = Error> + 'static,
     S::Future: 'static,
@@ -50,8 +46,6 @@ where
     Algorithm::SigningKey: Clone,
     Algorithm::VerifyingKey: Clone,
     Body: MessageBody,
-    RefreshAuthorizer: Handler<RefreshAuthorizerArgs, Output = Result<(), actix_web::Error>> + Clone,
-    RefreshAuthorizerArgs: FromRequest + Clone + 'static,
 {
     type Response = ServiceResponse<Body>;
     type Error = S::Error;
@@ -69,9 +63,6 @@ where
                     if let Some(token_update) = token_update {
                         if let Some(auth_cookie) = token_update.auth_cookie {
                             res.response_mut().add_cookie(&auth_cookie)?
-                        }
-                        if let Some(refresh_cookie) = token_update.refresh_cookie {
-                            res.response_mut().add_cookie(&refresh_cookie)?
                         }
                     }
                     Ok(res)

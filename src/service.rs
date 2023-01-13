@@ -2,7 +2,7 @@ use super::{AuthenticationMiddleware, Authority};
 use actix_web::{
     body::MessageBody,
     dev::{Service, ServiceRequest, ServiceResponse, Transform},
-    Error, FromRequest, Handler,
+    Error,
 };
 use futures_util::future;
 use serde::{de::DeserializeOwned, Serialize};
@@ -48,18 +48,18 @@ use std::{marker::PhantomData, rc::Rc, sync::Arc};
         );
    ```
 */
-pub struct AuthenticationService<Claims, Algorithm, RefreshAuthorizer, RefreshAuthorizerArgs>
+pub struct AuthenticationService<Claims, Algorithm>
 where
     Algorithm: jwt_compact::Algorithm,
     Algorithm::SigningKey: Clone,
     Algorithm::VerifyingKey: Clone,
 {
-    inner: Authority<Claims, Algorithm, RefreshAuthorizer, RefreshAuthorizerArgs>,
+    inner: Authority<Claims, Algorithm>,
     _claims: PhantomData<Claims>,
 }
 
-impl<Claims, Algorithm, RefreshAuthorizer, RefreshAuthorizerArgs>
-    AuthenticationService<Claims, Algorithm, RefreshAuthorizer, RefreshAuthorizerArgs>
+impl<Claims, Algorithm>
+    AuthenticationService<Claims, Algorithm>
 where
     Claims: DeserializeOwned,
     Algorithm: jwt_compact::Algorithm,
@@ -70,8 +70,8 @@ where
         returns a new AuthenticationService wrapping the [`Authority`]
     */
     pub fn new(
-        authority: Authority<Claims, Algorithm, RefreshAuthorizer, RefreshAuthorizerArgs>,
-    ) -> AuthenticationService<Claims, Algorithm, RefreshAuthorizer, RefreshAuthorizerArgs> {
+        authority: Authority<Claims, Algorithm>,
+    ) -> AuthenticationService<Claims, Algorithm> {
         AuthenticationService {
             inner: authority,
             _claims: PhantomData,
@@ -79,9 +79,9 @@ where
     }
 }
 
-impl<S, Body, Claims, Algorithm, RefreshAuthorizer, RefreshAuthorizerArgs>
+impl<S, Body, Claims, Algorithm>
     Transform<S, ServiceRequest>
-    for AuthenticationService<Claims, Algorithm, RefreshAuthorizer, RefreshAuthorizerArgs>
+    for AuthenticationService<Claims, Algorithm>
 where
     S: Service<ServiceRequest, Response = ServiceResponse<Body>, Error = Error> + 'static,
     S::Future: 'static,
@@ -90,20 +90,15 @@ where
     Algorithm::SigningKey: Clone,
     Algorithm::VerifyingKey: Clone,
     Body: MessageBody,
-    RefreshAuthorizer:
-        Handler<RefreshAuthorizerArgs, Output = Result<(), actix_web::Error>> + Clone,
-    RefreshAuthorizerArgs: FromRequest + Clone + 'static,
 {
     type Response = <AuthenticationMiddleware<
         S,
         Claims,
         Algorithm,
-        RefreshAuthorizer,
-        RefreshAuthorizerArgs,
     > as Service<ServiceRequest>>::Response;
     type Error = Error;
     type Transform =
-        AuthenticationMiddleware<S, Claims, Algorithm, RefreshAuthorizer, RefreshAuthorizerArgs>;
+        AuthenticationMiddleware<S, Claims, Algorithm>;
     type InitError = ();
     type Future = future::Ready<Result<Self::Transform, Self::InitError>>;
 

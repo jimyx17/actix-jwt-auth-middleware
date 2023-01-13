@@ -159,7 +159,7 @@ where
         let token = self
             .algorithm
             .token(self.header.clone(), &token_claims, &self.signing_key)
-            .map_err(|err| AuthError::TokenCreation(err))?;
+            .map_err(AuthError::TokenCreation)?;
 
         Ok(Cookie::build(token_name, token).secure(true).finish())
     }
