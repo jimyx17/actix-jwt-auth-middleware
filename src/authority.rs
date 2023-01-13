@@ -75,6 +75,13 @@ where
     #[builder(default = "false")]
     enable_header_tokens: bool,
     /**
+        If set to true, the service will forward the request even when no header has been received.
+
+        Defaults to `false`
+     */
+    #[builder(default = "false")]
+    enable_none_token: bool,
+    /**
         Key used to verify integrity of access and refresh token.
     */
     verifying_key: Algorithm::VerifyingKey,
@@ -141,6 +148,7 @@ where
                     .insert(access_token.claims().custom.clone());
                 Ok((req, None))
             }
+            Err(_) if self.enable_none_token => Ok((req, None)),
             Err(err) => Err(err)
         }
     }
